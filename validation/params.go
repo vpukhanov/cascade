@@ -3,9 +3,10 @@ package validation
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
+
+	"cascade/git"
 )
 
 // ValidateFile checks if a file exists and meets the requirements for its type
@@ -42,10 +43,9 @@ func ValidateGitRepo(path string) error {
 		return fmt.Errorf("path is not a directory: %s", path)
 	}
 
-	// Check if it's a git repository by running 'git rev-parse --git-dir'
-	cmd := exec.Command("git", "-C", path, "rev-parse", "--git-dir")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("not a git repository: %s", path)
+	// Delegate to git package for repository validation
+	if err := git.IsGitRepository(path); err != nil {
+		return fmt.Errorf("not a git repository: %s (%v)", path, err)
 	}
 	return nil
 }
