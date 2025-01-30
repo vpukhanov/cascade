@@ -15,22 +15,22 @@ To apply changes across repositories:
 ```bash
 cascade apply \
   --patch ./changes.patch \    # Path to patch file (or --script)
-  --repos ./repo1,./repo2 \    # Comma-separated repository paths
   --branch update-logging \    # New branch name
-  --message "Update logging"   # Commit message
+  --message "Update logging" \ # Commit message
+  ./repo1 ./repo2              # Repository paths
 
 # Alternative using a script
 cascade apply \
   --script ./update.sh \
-  --repos ./repo1,./repo2 \
   --branch refactor-components \
-  --message "Refactor components"
+  --message "Refactor components" \
+  ./repo1 ./repo2
 ```
 
-Required flags:
+Required parameters:
 
+- Repository paths - One or more paths to git repositories to modify (as positional arguments)
 - `--patch` or `--script` - Path to patch file or executable script
-- `--repos` - Comma-separated list of repository paths to modify
 - `--branch` - Name for the new branch that will be created
 - `--message` - Commit message used for the changes
 

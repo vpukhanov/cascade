@@ -50,24 +50,6 @@ func ValidateGitRepo(path string) error {
 	return nil
 }
 
-// ValidateGitRepos validates a comma-separated list of git repository paths
-func ValidateGitRepos(repos string) error {
-	if repos == "" {
-		return fmt.Errorf("repository list is empty")
-	}
-
-	for _, repo := range strings.Split(repos, ",") {
-		repo = strings.TrimSpace(repo)
-		if repo == "" {
-			return fmt.Errorf("empty repository path in list")
-		}
-		if err := ValidateGitRepo(repo); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // ValidateBranchName checks if the branch name is valid according to git rules
 func ValidateBranchName(name string) error {
 	if strings.HasPrefix(name, ".") {

@@ -93,49 +93,6 @@ func TestValidateGitRepo(t *testing.T) {
 	}
 }
 
-func TestValidateGitRepos(t *testing.T) {
-	// Create a temporary directory for test repos
-	tmpDir, err := os.MkdirTemp("", "cascade-test-*")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	// Create test git repositories
-	repo1 := filepath.Join(tmpDir, "repo1")
-	repo2 := filepath.Join(tmpDir, "repo2")
-	for _, repo := range []string{repo1, repo2} {
-		if err := os.Mkdir(repo, 0755); err != nil {
-			t.Fatal(err)
-		}
-		if err := runGitInit(repo); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	tests := []struct {
-		name    string
-		repos   string
-		wantErr bool
-	}{
-		{"single valid repo", repo1, false},
-		{"multiple valid repos", repo1 + "," + repo2, false},
-		{"empty string", "", true},
-		{"empty repo in list", repo1 + ",,", true},
-		{"non-existent repo", filepath.Join(tmpDir, "nonexistent"), true},
-		{"mixed valid and invalid", repo1 + "," + filepath.Join(tmpDir, "nonexistent"), true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateGitRepos(tt.repos)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ValidateGitRepos() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestValidateBranchName(t *testing.T) {
 	tests := []struct {
 		name    string
