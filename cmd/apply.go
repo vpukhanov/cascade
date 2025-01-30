@@ -15,6 +15,10 @@ var (
 	scriptFile string
 	branch     string
 	message    string
+
+	gitCheckoutBranch = git.CheckoutBranch
+	gitApplyPatch     = git.ApplyPatch
+	gitCommitChanges  = git.CommitChanges
 )
 
 var applyCmd = &cobra.Command{
@@ -92,20 +96,17 @@ func runApply(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, repoPath := range args {
-		// Checkout or create branch
-		if err := git.CheckoutBranch(repoPath, branch); err != nil {
+		if err := gitCheckoutBranch(repoPath, branch); err != nil {
 			results.errors[repoPath] = fmt.Errorf("branch checkout failed: %w", err)
 			continue
 		}
 
-		// Apply patch
-		if err := git.ApplyPatch(repoPath, absPatchPath); err != nil {
+		if err := gitApplyPatch(repoPath, absPatchPath); err != nil {
 			results.errors[repoPath] = fmt.Errorf("patch application failed: %w", err)
 			continue
 		}
 
-		// Commit changes
-		if err := git.CommitChanges(repoPath, message); err != nil {
+		if err := gitCommitChanges(repoPath, message); err != nil {
 			results.errors[repoPath] = fmt.Errorf("commit failed: %w", err)
 			continue
 		}
