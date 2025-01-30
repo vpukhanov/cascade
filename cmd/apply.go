@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 
+	"cascade/validation"
+
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +20,7 @@ var applyCmd = &cobra.Command{
 	Use:     "apply",
 	Short:   "Apply changes across multiple repositories",
 	Long:    "Apply changes across multiple git repositories using either a patch file or a script.",
-	Example: "cascade apply --script ./update.sh --repos ./repo1,./repo2 --branch refactor-components --message \"Refactor components\"",
+	Example: `cascade apply --patch ./changes.patch --repos ./repo1,./repo2 --branch update-logging --message "Update logging"`,
 	RunE:    runApply,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if patchFile == "" && scriptFile == "" {
@@ -36,6 +38,26 @@ var applyCmd = &cobra.Command{
 		if message == "" {
 			return fmt.Errorf("--message is required")
 		}
+
+		if patchFile != "" {
+			if err := validation.ValidateFile(patchFile, "patch"); err != nil {
+				return err
+			}
+		}
+		if scriptFile != "" {
+			if err := validation.ValidateFile(scriptFile, "script"); err != nil {
+				return err
+			}
+		}
+
+		if err := validation.ValidateGitRepos(repos); err != nil {
+			return err
+		}
+
+		if err := validation.ValidateBranchName(branch); err != nil {
+			return err
+		}
+
 		return nil
 	},
 }
