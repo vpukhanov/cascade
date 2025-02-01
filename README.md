@@ -45,3 +45,11 @@ To check the version:
 ```bash
 cascade --version
 ```
+
+## Development
+
+To run the tests:
+
+```bash
+go test ./...
+```
