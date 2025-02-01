@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	version = "0.1.0" // This can be set during build time
+	version = "dev" // This can be set during build time
 )
 
 var rootCmd = &cobra.Command{
