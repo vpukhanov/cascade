@@ -7,9 +7,26 @@ Cascade is a CLI tool designed to apply changes across multiple git repositories
 
 ## Installation
 
-```bash
+If you have Homebrew installed on macOS or Linux, you can install Cascade using:
+
+```sh
+brew install vpukhanov/tools/cascade
+```
+
+If you have Go installed on your system, you can install Cascade directly using the `go install` command:
+
+```sh
 go install github.com/vpukhanov/cascade@latest
 ```
+
+Alternatively, you can download the binary from the [Releases page](https://github.com/vpukhanov/cascade/releases) of the repository:
+
+1. Download the archive for your operating system and architecture.
+2. Extract the archive:
+   - On macOS: Double-click the .zip file or use `unzip cascade_*_Darwin_*.zip`
+   - On Linux: `tar -xzf cascade_*_Linux_*.tar.gz`
+   - On Windows: Extract the .zip file using File Explorer or a tool like 7-Zip
+3. Move the `cascade` binary to a directory in your system's `PATH`.
 
 ## Usage
 
