@@ -15,11 +15,15 @@ var (
 	scriptFile string
 	branch     string
 	message    string
+	baseBranch string
+	pullLatest bool
 
-	gitCheckoutBranch = git.CheckoutBranch
-	gitApplyPatch     = git.ApplyPatch
-	gitCommitChanges  = git.CommitChanges
-	gitExecuteScript  = git.ExecuteScript
+	gitCheckoutBranch         = git.CheckoutBranch
+	gitCheckoutExistingBranch = git.CheckoutExistingBranch
+	gitApplyPatch             = git.ApplyPatch
+	gitCommitChanges          = git.CommitChanges
+	gitExecuteScript          = git.ExecuteScript
+	gitPullLatest             = git.PullLatest
 )
 
 var applyCmd = &cobra.Command{
@@ -61,7 +65,13 @@ var applyCmd = &cobra.Command{
 		}
 
 		if err := validation.ValidateBranchName(branch); err != nil {
-			return err
+			return fmt.Errorf("invalid target branch name: %w", err)
+		}
+
+		if baseBranch != "" {
+			if err := validation.ValidateBranchName(baseBranch); err != nil {
+				return fmt.Errorf("invalid base branch name: %w", err)
+			}
 		}
 
 		return nil
@@ -76,6 +86,10 @@ func init() {
 	applyCmd.Flags().StringVar(&scriptFile, "script", "", "Path to executable script")
 	applyCmd.Flags().StringVar(&branch, "branch", "", "Name for the new branch that will be created")
 	applyCmd.Flags().StringVar(&message, "message", "", "Commit message used for the changes")
+
+	// Optional flags
+	applyCmd.Flags().StringVar(&baseBranch, "base-branch", "", "Branch to check out and apply changes to")
+	applyCmd.Flags().BoolVar(&pullLatest, "pull", false, "Pull latest changes from remote before applying changes")
 }
 
 // ResetFlags resets all global flag variables to their zero values
@@ -84,6 +98,8 @@ func ResetFlags() {
 	scriptFile = ""
 	branch = ""
 	message = ""
+	baseBranch = ""
+	pullLatest = false
 }
 
 func runApply(cmd *cobra.Command, args []string) error {
@@ -107,6 +123,23 @@ func runApply(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, repoPath := range args {
+		// If base branch is specified, check it out first
+		if baseBranch != "" {
+			if err := gitCheckoutExistingBranch(repoPath, baseBranch); err != nil {
+				results.errors[repoPath] = fmt.Errorf("base branch checkout failed: %w", err)
+				continue
+			}
+		}
+
+		// Pull latest changes if requested
+		if pullLatest {
+			if err := gitPullLatest(repoPath); err != nil {
+				results.errors[repoPath] = fmt.Errorf("pull latest failed: %w", err)
+				continue
+			}
+		}
+
+		// Create and checkout the new branch
 		if err := gitCheckoutBranch(repoPath, branch); err != nil {
 			results.errors[repoPath] = fmt.Errorf("branch checkout failed: %w", err)
 			continue

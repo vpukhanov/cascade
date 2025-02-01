@@ -54,3 +54,21 @@ func ExecuteScript(repoPath string, scriptPath string) error {
 	}
 	return nil
 }
+
+func CheckoutExistingBranch(repoPath string, branch string) error {
+	cmd := exec.Command("git", "checkout", branch)
+	cmd.Dir = repoPath
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("error checking out branch: %w\n%s", err, string(output))
+	}
+	return nil
+}
+
+func PullLatest(repoPath string) error {
+	cmd := exec.Command("git", "pull", "--ff-only")
+	cmd.Dir = repoPath
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("error pulling latest changes: %w\n%s", err, string(output))
+	}
+	return nil
+}

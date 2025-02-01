@@ -11,9 +11,11 @@ import (
 // Override git functions with mocks
 func resetMocks() {
 	gitCheckoutBranch = func(repoPath, branch string) error { return nil }
+	gitCheckoutExistingBranch = func(repoPath, branch string) error { return nil }
 	gitApplyPatch = func(repoPath, patchPath string) error { return nil }
 	gitCommitChanges = func(repoPath, message string) error { return nil }
 	gitExecuteScript = func(repoPath, scriptPath string) error { return nil }
+	gitPullLatest = func(repoPath string) error { return nil }
 }
 
 func TestRunApply(t *testing.T) {
@@ -21,6 +23,8 @@ func TestRunApply(t *testing.T) {
 		name        string
 		repos       []string
 		useScript   bool
+		baseBranch  string
+		pullLatest  bool
 		mockSetup   func()
 		wantSuccess int
 		wantErrors  int
@@ -40,6 +44,52 @@ func TestRunApply(t *testing.T) {
 			mockSetup:   func() { resetMocks() },
 			wantSuccess: 2,
 			wantErrors:  0,
+		},
+		{
+			name:        "success_with_base_branch",
+			repos:       []string{"repo1", "repo2"},
+			useScript:   false,
+			baseBranch:  "main",
+			mockSetup:   func() { resetMocks() },
+			wantSuccess: 2,
+			wantErrors:  0,
+		},
+		{
+			name:        "success_with_pull",
+			repos:       []string{"repo1", "repo2"},
+			useScript:   false,
+			pullLatest:  true,
+			mockSetup:   func() { resetMocks() },
+			wantSuccess: 2,
+			wantErrors:  0,
+		},
+		{
+			name:       "fail_base_branch_checkout",
+			repos:      []string{"repo1", "repo2"},
+			useScript:  false,
+			baseBranch: "main",
+			mockSetup: func() {
+				resetMocks()
+				gitCheckoutExistingBranch = func(repoPath, branch string) error {
+					return fmt.Errorf("base branch checkout failed")
+				}
+			},
+			wantSuccess: 0,
+			wantErrors:  2,
+		},
+		{
+			name:       "fail_pull_latest",
+			repos:      []string{"repo1", "repo2"},
+			useScript:  false,
+			pullLatest: true,
+			mockSetup: func() {
+				resetMocks()
+				gitPullLatest = func(repoPath string) error {
+					return fmt.Errorf("pull failed")
+				}
+			},
+			wantSuccess: 0,
+			wantErrors:  2,
 		},
 		{
 			name:      "mixed_results_patch",
@@ -132,6 +182,10 @@ func TestRunApply(t *testing.T) {
 				patchFile = "test.patch"
 			}
 
+			// Set optional flags
+			baseBranch = tt.baseBranch
+			pullLatest = tt.pullLatest
+
 			// Capture stdout
 			oldStdout := os.Stdout
 			r, w, _ := os.Pipe()
@@ -148,6 +202,8 @@ func TestRunApply(t *testing.T) {
 			// Reset global variables
 			scriptFile = ""
 			patchFile = ""
+			baseBranch = ""
+			pullLatest = false
 
 			// Verify results
 			if err != nil {
