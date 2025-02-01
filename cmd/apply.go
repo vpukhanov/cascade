@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"runtime"
 
 	"github.com/vpukhanov/cascade/internal/git"
 	"github.com/vpukhanov/cascade/internal/validation"
@@ -39,6 +40,9 @@ var applyCmd = &cobra.Command{
 		}
 		if patchFile != "" && scriptFile != "" {
 			return fmt.Errorf("--patch and --script cannot be used together")
+		}
+		if runtime.GOOS == "windows" && scriptFile != "" {
+			return fmt.Errorf("--script option is not supported on Windows")
 		}
 		if branch == "" {
 			return fmt.Errorf("--branch is required")

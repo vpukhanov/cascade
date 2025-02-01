@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -82,6 +83,10 @@ index 0000000..9daeafb
 	})
 
 	t.Run("apply script to multiple repositories", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("Script execution is not supported on Windows [https://github.com/vpukhanov/cascade/issues/1]")
+		}
+
 		resetFlags()
 		// Create a test script
 		scriptContent := `#!/bin/sh
@@ -280,6 +285,10 @@ index 0000000..9daeafb
 	})
 
 	t.Run("fail on non-executable script", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("Script execution is not supported on Windows [https://github.com/vpukhanov/cascade/issues/1]")
+		}
+
 		resetFlags()
 		nonExecutableScript := filepath.Join(testDir, "non-executable.sh")
 		if err := os.WriteFile(nonExecutableScript, []byte("#!/bin/sh\necho test"), 0644); err != nil {
