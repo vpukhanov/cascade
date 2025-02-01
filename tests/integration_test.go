@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"cascade/cmd"
+	"github.com/vpukhanov/cascade/cmd"
 )
 
 func TestIntegrationApply(t *testing.T) {

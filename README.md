@@ -5,7 +5,7 @@ Cascade is a CLI tool that lets you apply changes to your codebase across multip
 ## Installation
 
 ```bash
-go install cascade
+go install github.com/vpukhanov/cascade@latest
 ```
 
 ## Usage

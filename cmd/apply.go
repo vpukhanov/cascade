@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"cascade/internal/git"
-	"cascade/internal/validation"
+	"github.com/vpukhanov/cascade/internal/git"
+	"github.com/vpukhanov/cascade/internal/validation"
 
 	"github.com/spf13/cobra"
 )

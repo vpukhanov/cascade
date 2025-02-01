@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"cascade/cmd"
+	"github.com/vpukhanov/cascade/cmd"
 )
 
 func main() {
