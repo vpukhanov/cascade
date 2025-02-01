@@ -1,6 +1,9 @@
 # Cascade
 
-Cascade is a CLI tool that lets you apply changes to your codebase across multiple git repositories. It helps automate the process of making similar changes across multiple repositories by handling the fetching of latest changes, creating branches, applying patches or running scripts, and creating pull requests.
+Cascade is a CLI tool designed to apply changes across multiple git repositories efficiently. It automates the process of fetching the latest changes, creating branches, applying patches or executing scripts, and generating pull requests.
+
+> [!WARNING]
+> Cascade is a work in progress; some features may not function as intended. To prevent data loss, only run the program on repositories without unpushed important changes.
 
 ## Installation
 
