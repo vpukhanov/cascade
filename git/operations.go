@@ -45,3 +45,12 @@ func IsGitRepository(repoPath string) error {
 	}
 	return nil
 }
+
+func ExecuteScript(repoPath string, scriptPath string) error {
+	cmd := exec.Command(scriptPath)
+	cmd.Dir = repoPath
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("script execution failed: %w\n%s", err, string(output))
+	}
+	return nil
+}

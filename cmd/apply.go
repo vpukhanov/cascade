@@ -19,6 +19,7 @@ var (
 	gitCheckoutBranch = git.CheckoutBranch
 	gitApplyPatch     = git.ApplyPatch
 	gitCommitChanges  = git.CommitChanges
+	gitExecuteScript  = git.ExecuteScript
 )
 
 var applyCmd = &cobra.Command{
@@ -78,14 +79,16 @@ func init() {
 }
 
 func runApply(cmd *cobra.Command, args []string) error {
-	if scriptFile != "" {
-		// TODO: Implement script support
-		return fmt.Errorf("script support is not implemented yet")
-	}
+	var absPath string
+	var err error
 
-	absPatchPath, err := filepath.Abs(patchFile)
+	if scriptFile != "" {
+		absPath, err = filepath.Abs(scriptFile)
+	} else {
+		absPath, err = filepath.Abs(patchFile)
+	}
 	if err != nil {
-		return fmt.Errorf("failed to get absolute path for patch file: %w", err)
+		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
 	results := struct {
@@ -101,9 +104,16 @@ func runApply(cmd *cobra.Command, args []string) error {
 			continue
 		}
 
-		if err := gitApplyPatch(repoPath, absPatchPath); err != nil {
-			results.errors[repoPath] = fmt.Errorf("patch application failed: %w", err)
-			continue
+		if scriptFile != "" {
+			if err := gitExecuteScript(repoPath, absPath); err != nil {
+				results.errors[repoPath] = fmt.Errorf("script execution failed: %w", err)
+				continue
+			}
+		} else {
+			if err := gitApplyPatch(repoPath, absPath); err != nil {
+				results.errors[repoPath] = fmt.Errorf("patch application failed: %w", err)
+				continue
+			}
 		}
 
 		if err := gitCommitChanges(repoPath, message); err != nil {
