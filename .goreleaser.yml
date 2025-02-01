@@ -70,7 +70,7 @@ brews:
     description: "CLI tool that applies a patch across multiple git repositories"
     license: "MIT"
     test: |
-      system "#{bin}/cascade version"
+      system "#{bin}/cascade --version"
     install: |
       bin.install "cascade"
     commit_author:
