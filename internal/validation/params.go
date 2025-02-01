@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"cascade/git"
+	"cascade/internal/git"
 )
 
 // ValidateFile checks if a file exists and meets the requirements for its type

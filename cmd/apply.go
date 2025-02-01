@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"cascade/git"
-	"cascade/validation"
+	"cascade/internal/git"
+	"cascade/internal/validation"
 
 	"github.com/spf13/cobra"
 )
@@ -76,6 +76,14 @@ func init() {
 	applyCmd.Flags().StringVar(&scriptFile, "script", "", "Path to executable script")
 	applyCmd.Flags().StringVar(&branch, "branch", "", "Name for the new branch that will be created")
 	applyCmd.Flags().StringVar(&message, "message", "", "Commit message used for the changes")
+}
+
+// ResetFlags resets all global flag variables to their zero values
+func ResetFlags() {
+	patchFile = ""
+	scriptFile = ""
+	branch = ""
+	message = ""
 }
 
 func runApply(cmd *cobra.Command, args []string) error {
