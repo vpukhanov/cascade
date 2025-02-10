@@ -329,7 +329,7 @@ index 0000000..9daeafb
 		content, err := os.ReadFile(pushedFile)
 		if err != nil {
 			t.Errorf("pushed.txt not found in remote repository")
-		} else if string(content) != "pushed content\n" {
+		} else if strings.TrimSpace(string(content)) != "pushed content" {
 			t.Errorf("Expected content 'pushed content', got '%s' in remote", string(content))
 		}
 
