@@ -18,6 +18,7 @@ var (
 	message    string
 	baseBranch string
 	pullLatest bool
+	push       bool
 
 	gitCheckoutBranch         = git.CheckoutBranch
 	gitCheckoutExistingBranch = git.CheckoutExistingBranch
@@ -25,6 +26,7 @@ var (
 	gitCommitChanges          = git.CommitChanges
 	gitExecuteScript          = git.ExecuteScript
 	gitPullLatest             = git.PullLatest
+	gitPushChanges            = git.PushChanges
 )
 
 var applyCmd = &cobra.Command{
@@ -94,6 +96,7 @@ func init() {
 	// Optional flags
 	applyCmd.Flags().StringVar(&baseBranch, "base-branch", "", "Branch to check out and apply changes to")
 	applyCmd.Flags().BoolVar(&pullLatest, "pull", false, "Pull latest changes from remote before applying changes")
+	applyCmd.Flags().BoolVar(&push, "push", false, "Push new branch to origin after applying the changes")
 }
 
 // ResetFlags resets all global flag variables to their zero values
@@ -104,6 +107,7 @@ func ResetFlags() {
 	message = ""
 	baseBranch = ""
 	pullLatest = false
+	push = false
 }
 
 func runApply(cmd *cobra.Command, args []string) error {
@@ -164,6 +168,13 @@ func runApply(cmd *cobra.Command, args []string) error {
 		if err := gitCommitChanges(repoPath, message); err != nil {
 			results.errors[repoPath] = fmt.Errorf("commit failed: %w", err)
 			continue
+		}
+
+		if push {
+			if err := gitPushChanges(repoPath, branch); err != nil {
+				results.errors[repoPath] = fmt.Errorf("push failed: %w", err)
+				continue
+			}
 		}
 
 		results.success = append(results.success, repoPath)

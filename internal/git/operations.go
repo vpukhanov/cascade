@@ -72,3 +72,12 @@ func PullLatest(repoPath string) error {
 	}
 	return nil
 }
+
+func PushChanges(repoPath string, branch string) error {
+	cmd := exec.Command("git", "push", "-u", "origin", branch)
+	cmd.Dir = repoPath
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("error pushing changes: %w\n%s", err, string(output))
+	}
+	return nil
+}

@@ -16,6 +16,7 @@ func resetMocks() {
 	gitCommitChanges = func(repoPath, message string) error { return nil }
 	gitExecuteScript = func(repoPath, scriptPath string) error { return nil }
 	gitPullLatest = func(repoPath string) error { return nil }
+	gitPushChanges = func(repoPath, branch string) error { return nil }
 }
 
 func TestRunApply(t *testing.T) {
@@ -25,6 +26,7 @@ func TestRunApply(t *testing.T) {
 		useScript   bool
 		baseBranch  string
 		pullLatest  bool
+		push        bool
 		mockSetup   func()
 		wantSuccess int
 		wantErrors  int
@@ -64,6 +66,15 @@ func TestRunApply(t *testing.T) {
 			wantErrors:  0,
 		},
 		{
+			name:        "success_with_push",
+			repos:       []string{"repo1", "repo2"},
+			useScript:   false,
+			push:        true,
+			mockSetup:   func() { resetMocks() },
+			wantSuccess: 2,
+			wantErrors:  0,
+		},
+		{
 			name:       "fail_base_branch_checkout",
 			repos:      []string{"repo1", "repo2"},
 			useScript:  false,
@@ -86,6 +97,20 @@ func TestRunApply(t *testing.T) {
 				resetMocks()
 				gitPullLatest = func(repoPath string) error {
 					return fmt.Errorf("pull failed")
+				}
+			},
+			wantSuccess: 0,
+			wantErrors:  2,
+		},
+		{
+			name:      "fail_push",
+			repos:     []string{"repo1", "repo2"},
+			useScript: false,
+			push:      true,
+			mockSetup: func() {
+				resetMocks()
+				gitPushChanges = func(repoPath, branch string) error {
+					return fmt.Errorf("push failed")
 				}
 			},
 			wantSuccess: 0,
@@ -185,6 +210,7 @@ func TestRunApply(t *testing.T) {
 			// Set optional flags
 			baseBranch = tt.baseBranch
 			pullLatest = tt.pullLatest
+			push = tt.push
 
 			// Capture stdout
 			oldStdout := os.Stdout
@@ -204,6 +230,7 @@ func TestRunApply(t *testing.T) {
 			patchFile = ""
 			baseBranch = ""
 			pullLatest = false
+			push = false
 
 			// Verify results
 			if err != nil {
