@@ -261,6 +261,84 @@ index 0000000..9daeafb
 		}
 	})
 
+	t.Run("push changes to remote", func(t *testing.T) {
+		resetFlags()
+
+		// Create a bare remote repository
+		remoteRepo := filepath.Join(testDir, "remote-push")
+		if err := os.MkdirAll(remoteRepo, 0755); err != nil {
+			t.Fatal(err)
+		}
+		runGitCmd(t, remoteRepo, "init", "--bare", "-b", "main")
+
+		// Clone the remote repository
+		clonedRepo := filepath.Join(testDir, "cloned-push")
+		runGitCmd(t, testDir, "clone", remoteRepo, clonedRepo)
+
+		// Set up git config in cloned repo
+		runGitCmd(t, clonedRepo, "config", "user.email", "test@example.com")
+		runGitCmd(t, clonedRepo, "config", "user.name", "Test User")
+		runGitCmd(t, clonedRepo, "config", "commit.gpgsign", "false")
+
+		// Create initial commit in cloned repo
+		readmeFile := filepath.Join(clonedRepo, "README.md")
+		if err := os.WriteFile(readmeFile, []byte("# Test Repository"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		runGitCmd(t, clonedRepo, "add", "README.md")
+		runGitCmd(t, clonedRepo, "commit", "-m", "Initial commit")
+		runGitCmd(t, clonedRepo, "push", "origin", "main")
+
+		// Create a patch file
+		patchContent := `diff --git a/pushed.txt b/pushed.txt
+new file mode 100644
+index 0000000..9daeafb
+--- /dev/null
++++ b/pushed.txt
+@@ -0,0 +1 @@
++pushed content
+`
+		patchFile := filepath.Join(testDir, "push.patch")
+		if err := os.WriteFile(patchFile, []byte(patchContent), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		// Set up command line arguments
+		os.Args = []string{
+			"cascade",
+			"apply",
+			"--patch", patchFile,
+			"--branch", "feature/push-test",
+			"--message", "Add pushed.txt",
+			"--push",
+			clonedRepo,
+		}
+
+		// Run the command
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("Execute failed: %v", err)
+		}
+
+		// Verify changes were pushed to remote by cloning to a new directory
+		verifyRepo := filepath.Join(testDir, "verify-push")
+		runGitCmd(t, testDir, "clone", remoteRepo, verifyRepo)
+		runGitCmd(t, verifyRepo, "checkout", "feature/push-test")
+
+		// Verify file exists and has correct content
+		pushedFile := filepath.Join(verifyRepo, "pushed.txt")
+		content, err := os.ReadFile(pushedFile)
+		if err != nil {
+			t.Errorf("pushed.txt not found in remote repository")
+		} else if strings.TrimSpace(string(content)) != "pushed content" {
+			t.Errorf("Expected content 'pushed content', got '%s' in remote", string(content))
+		}
+
+		// Verify commit message
+		if msg := getLastCommitMessage(t, verifyRepo); msg != "Add pushed.txt" {
+			t.Errorf("Expected commit message 'Add pushed.txt', got '%s'", msg)
+		}
+	})
+
 	t.Run("fail on invalid repository", func(t *testing.T) {
 		resetFlags()
 		invalidRepo := filepath.Join(testDir, "not-a-repo")

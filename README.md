@@ -53,6 +53,7 @@ cascade apply \
   --message "Update dependencies" \
   --base-branch main \         # Branch to apply changes to
   --pull \                     # Pull latest changes first
+  --push \                     # Push new branch to origin
   ./repo1 ./repo2
 ```
 
@@ -67,6 +68,7 @@ Optional parameters:
 
 - `--base-branch` - Branch to check out and apply changes to (default: current branch)
 - `--pull` - Pull latest changes from remote before applying changes (default: false)
+- `--push` - Push changes to remote after applying them (default: false)
 
 To see available commands:
 
