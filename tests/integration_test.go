@@ -269,7 +269,7 @@ index 0000000..9daeafb
 		if err := os.MkdirAll(remoteRepo, 0755); err != nil {
 			t.Fatal(err)
 		}
-		runGitCmd(t, remoteRepo, "init", "--bare")
+		runGitCmd(t, remoteRepo, "init", "--bare", "-b", "main")
 
 		// Clone the remote repository
 		clonedRepo := filepath.Join(testDir, "cloned-push")
