@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/vpukhanov/cascade/internal/git"
+	applog "github.com/vpukhanov/cascade/internal/log"
 	"github.com/vpukhanov/cascade/internal/validation"
 
 	"github.com/spf13/cobra"
@@ -126,72 +127,89 @@ func runApply(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
-	results := struct {
-		success []string
-		errors  map[string]error
-	}{
-		errors: make(map[string]error),
+	type repoResult struct {
+		repo string
+		err  error
 	}
 
+	results := make([]repoResult, 0, len(args))
+	var logger *applog.ApplyLogger
+
 	for _, repoPath := range args {
+		var repoErr error
+
 		// If base branch is specified, check it out first
 		if baseBranch != "" {
 			if err := gitCheckoutExistingBranch(repoPath, baseBranch); err != nil {
-				results.errors[repoPath] = fmt.Errorf("base branch checkout failed: %w", err)
-				continue
+				repoErr = fmt.Errorf("base branch checkout failed: %w", err)
 			}
 		}
 
 		// Pull latest changes if requested
-		if pullLatest {
+		if repoErr == nil && pullLatest {
 			if err := gitPullLatest(repoPath); err != nil {
-				results.errors[repoPath] = fmt.Errorf("pull latest failed: %w", err)
-				continue
+				repoErr = fmt.Errorf("pull latest failed: %w", err)
 			}
 		}
 
 		// Create and checkout the new branch
-		if err := gitCheckoutBranch(repoPath, branch); err != nil {
-			results.errors[repoPath] = fmt.Errorf("branch checkout failed: %w", err)
-			continue
-		}
-
-		if scriptFile != "" {
-			if err := gitExecuteScript(repoPath, absPath); err != nil {
-				results.errors[repoPath] = fmt.Errorf("script execution failed: %w", err)
-				continue
-			}
-		} else {
-			if err := gitApplyPatch(repoPath, absPath); err != nil {
-				results.errors[repoPath] = fmt.Errorf("patch application failed: %w", err)
-				continue
+		if repoErr == nil {
+			if err := gitCheckoutBranch(repoPath, branch); err != nil {
+				repoErr = fmt.Errorf("branch checkout failed: %w", err)
 			}
 		}
 
-		if err := gitCommitChanges(repoPath, message, noVerify); err != nil {
-			results.errors[repoPath] = fmt.Errorf("commit failed: %w", err)
-			continue
+		if repoErr == nil {
+			if scriptFile != "" {
+				if err := gitExecuteScript(repoPath, absPath); err != nil {
+					repoErr = fmt.Errorf("script execution failed: %w", err)
+				}
+			} else {
+				if err := gitApplyPatch(repoPath, absPath); err != nil {
+					repoErr = fmt.Errorf("patch application failed: %w", err)
+				}
+			}
 		}
 
-		if push {
+		if repoErr == nil {
+			if err := gitCommitChanges(repoPath, message, noVerify); err != nil {
+				repoErr = fmt.Errorf("commit failed: %w", err)
+			}
+		}
+
+		if repoErr == nil && push {
 			if err := gitPushChanges(repoPath, branch, noVerify); err != nil {
-				results.errors[repoPath] = fmt.Errorf("push failed: %w", err)
-				continue
+				repoErr = fmt.Errorf("push failed: %w", err)
 			}
 		}
 
-		results.success = append(results.success, repoPath)
+		if repoErr != nil {
+			if logger == nil {
+				var err error
+				logger, err = applog.NewApplyLogger()
+				if err != nil {
+					return fmt.Errorf("failed to create error log: %w", err)
+				}
+			}
+			logger.LogRepoError(repoPath, repoErr)
+		}
+
+		results = append(results, repoResult{repo: repoPath, err: repoErr})
 	}
 
 	// Print results
-	fmt.Printf("\nSuccessfully processed (%d):\n", len(results.success))
-	for _, repo := range results.success {
-		fmt.Printf("  ✓ %s\n", repo)
+	fmt.Println()
+	for _, result := range results {
+		status := "ok"
+		if result.err != nil {
+			status = "fail"
+		}
+		fmt.Printf("%-4s %s\n", status, result.repo)
 	}
 
-	fmt.Printf("\nFailed (%d):\n", len(results.errors))
-	for repo, err := range results.errors {
-		fmt.Printf("  ✗ %s: %v\n", repo, err)
+	if logger != nil {
+		fmt.Printf("\nError details: %s\n", logger.Path())
+		_ = logger.Close()
 	}
 
 	return nil
