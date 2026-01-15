@@ -339,6 +339,100 @@ index 0000000..9daeafb
 		}
 	})
 
+	t.Run("push with no-verify skips pre-push hook", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("Git hook shell scripts are not supported on Windows in this test")
+		}
+
+		resetFlags()
+
+		// Create a bare remote repository
+		remoteRepo := filepath.Join(testDir, "remote-push-no-verify")
+		if err := os.MkdirAll(remoteRepo, 0755); err != nil {
+			t.Fatal(err)
+		}
+		runGitCmd(t, remoteRepo, "init", "--bare", "-b", "main")
+
+		// Clone the remote repository
+		clonedRepo := filepath.Join(testDir, "cloned-push-no-verify")
+		runGitCmd(t, testDir, "clone", remoteRepo, clonedRepo)
+
+		// Set up git config in cloned repo
+		runGitCmd(t, clonedRepo, "config", "user.email", "test@example.com")
+		runGitCmd(t, clonedRepo, "config", "user.name", "Test User")
+		runGitCmd(t, clonedRepo, "config", "commit.gpgsign", "false")
+
+		// Create initial commit in cloned repo
+		readmeFile := filepath.Join(clonedRepo, "README.md")
+		if err := os.WriteFile(readmeFile, []byte("# Test Repository"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		runGitCmd(t, clonedRepo, "add", "README.md")
+		runGitCmd(t, clonedRepo, "commit", "-m", "Initial commit")
+		runGitCmd(t, clonedRepo, "push", "origin", "main")
+
+		// Add a pre-push hook that would fail if executed.
+		hookPath := filepath.Join(clonedRepo, ".git", "hooks", "pre-push")
+		markerPath := filepath.Join(clonedRepo, "pre_push_ran")
+		hookContents := "#!/bin/sh\n" +
+			"echo ran > \"" + markerPath + "\"\n" +
+			"exit 1\n"
+		if err := os.WriteFile(hookPath, []byte(hookContents), 0755); err != nil {
+			t.Fatalf("failed to write pre-push hook: %v", err)
+		}
+
+		// Create a patch file
+		patchContent := `diff --git a/pushed.txt b/pushed.txt
+new file mode 100644
+index 0000000..9daeafb
+--- /dev/null
++++ b/pushed.txt
+@@ -0,0 +1 @@
++pushed content
+`
+		patchFile := filepath.Join(testDir, "push-no-verify.patch")
+		if err := os.WriteFile(patchFile, []byte(patchContent), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		// Set up command line arguments
+		os.Args = []string{
+			"cascade",
+			"apply",
+			"--patch", patchFile,
+			"--branch", "feature/push-no-verify-test",
+			"--message", "Add pushed.txt",
+			"--push",
+			"--no-verify",
+			clonedRepo,
+		}
+
+		// Run the command
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("Execute failed: %v", err)
+		}
+
+		if _, err := os.Stat(markerPath); err == nil {
+			t.Errorf("Expected pre-push hook to be skipped, but it ran")
+		} else if !os.IsNotExist(err) {
+			t.Fatalf("failed to check hook marker: %v", err)
+		}
+
+		// Verify changes were pushed to remote by cloning to a new directory
+		verifyRepo := filepath.Join(testDir, "verify-push-no-verify")
+		runGitCmd(t, testDir, "clone", remoteRepo, verifyRepo)
+		runGitCmd(t, verifyRepo, "checkout", "feature/push-no-verify-test")
+
+		// Verify file exists and has correct content
+		pushedFile := filepath.Join(verifyRepo, "pushed.txt")
+		content, err := os.ReadFile(pushedFile)
+		if err != nil {
+			t.Errorf("pushed.txt not found in remote repository")
+		} else if strings.TrimSpace(string(content)) != "pushed content" {
+			t.Errorf("Expected content 'pushed content', got '%s' in remote", string(content))
+		}
+	})
+
 	t.Run("fail on invalid repository", func(t *testing.T) {
 		resetFlags()
 		invalidRepo := filepath.Join(testDir, "not-a-repo")
