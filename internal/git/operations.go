@@ -23,14 +23,19 @@ func ApplyPatch(repoPath string, patchFile string) error {
 	return nil
 }
 
-func CommitChanges(repoPath string, message string) error {
+func CommitChanges(repoPath string, message string, noVerify bool) error {
 	addCmd := exec.Command("git", "add", ".")
 	addCmd.Dir = repoPath
 	if output, err := addCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("git add failed: %w\n%s", err, string(output))
 	}
 
-	commitCmd := exec.Command("git", "commit", "-m", message)
+	commitArgs := []string{"commit"}
+	if noVerify {
+		commitArgs = append(commitArgs, "--no-verify")
+	}
+	commitArgs = append(commitArgs, "-m", message)
+	commitCmd := exec.Command("git", commitArgs...)
 	commitCmd.Dir = repoPath
 	if output, err := commitCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("git commit failed: %w\n%s", err, string(output))
@@ -73,8 +78,13 @@ func PullLatest(repoPath string) error {
 	return nil
 }
 
-func PushChanges(repoPath string, branch string) error {
-	cmd := exec.Command("git", "push", "-u", "origin", branch)
+func PushChanges(repoPath string, branch string, noVerify bool) error {
+	pushArgs := []string{"push"}
+	if noVerify {
+		pushArgs = append(pushArgs, "--no-verify")
+	}
+	pushArgs = append(pushArgs, "-u", "origin", branch)
+	cmd := exec.Command("git", pushArgs...)
 	cmd.Dir = repoPath
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("error pushing changes: %w\n%s", err, string(output))

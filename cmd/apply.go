@@ -19,6 +19,7 @@ var (
 	baseBranch string
 	pullLatest bool
 	push       bool
+	noVerify   bool
 
 	gitCheckoutBranch         = git.CheckoutBranch
 	gitCheckoutExistingBranch = git.CheckoutExistingBranch
@@ -97,6 +98,7 @@ func init() {
 	applyCmd.Flags().StringVar(&baseBranch, "base-branch", "", "Branch to check out and apply changes to")
 	applyCmd.Flags().BoolVar(&pullLatest, "pull", false, "Pull latest changes from remote before applying changes")
 	applyCmd.Flags().BoolVar(&push, "push", false, "Push new branch to origin after applying the changes")
+	applyCmd.Flags().BoolVar(&noVerify, "no-verify", false, "Skip git commit and push hooks")
 }
 
 // ResetFlags resets all global flag variables to their zero values
@@ -108,6 +110,7 @@ func ResetFlags() {
 	baseBranch = ""
 	pullLatest = false
 	push = false
+	noVerify = false
 }
 
 func runApply(cmd *cobra.Command, args []string) error {
@@ -165,13 +168,13 @@ func runApply(cmd *cobra.Command, args []string) error {
 			}
 		}
 
-		if err := gitCommitChanges(repoPath, message); err != nil {
+		if err := gitCommitChanges(repoPath, message, noVerify); err != nil {
 			results.errors[repoPath] = fmt.Errorf("commit failed: %w", err)
 			continue
 		}
 
 		if push {
-			if err := gitPushChanges(repoPath, branch); err != nil {
+			if err := gitPushChanges(repoPath, branch, noVerify); err != nil {
 				results.errors[repoPath] = fmt.Errorf("push failed: %w", err)
 				continue
 			}

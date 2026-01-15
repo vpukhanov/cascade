@@ -71,7 +71,7 @@ func TestCommitChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = CommitChanges(repoPath, commitMessage)
+	err = CommitChanges(repoPath, commitMessage, false)
 	if err != nil {
 		t.Fatalf("CommitChanges failed: %v", err)
 	}

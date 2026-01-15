@@ -13,10 +13,10 @@ func resetMocks() {
 	gitCheckoutBranch = func(repoPath, branch string) error { return nil }
 	gitCheckoutExistingBranch = func(repoPath, branch string) error { return nil }
 	gitApplyPatch = func(repoPath, patchPath string) error { return nil }
-	gitCommitChanges = func(repoPath, message string) error { return nil }
+	gitCommitChanges = func(repoPath, message string, noVerify bool) error { return nil }
 	gitExecuteScript = func(repoPath, scriptPath string) error { return nil }
 	gitPullLatest = func(repoPath string) error { return nil }
-	gitPushChanges = func(repoPath, branch string) error { return nil }
+	gitPushChanges = func(repoPath, branch string, noVerify bool) error { return nil }
 }
 
 func TestRunApply(t *testing.T) {
@@ -109,7 +109,7 @@ func TestRunApply(t *testing.T) {
 			push:      true,
 			mockSetup: func() {
 				resetMocks()
-				gitPushChanges = func(repoPath, branch string) error {
+				gitPushChanges = func(repoPath, branch string, _ bool) error {
 					return fmt.Errorf("push failed")
 				}
 			},
@@ -137,7 +137,7 @@ func TestRunApply(t *testing.T) {
 					return nil
 				}
 				// Fail commit for repo3
-				gitCommitChanges = func(repoPath, _ string) error {
+				gitCommitChanges = func(repoPath, _ string, _ bool) error {
 					if repoPath == "repo3" {
 						return fmt.Errorf("commit error")
 					}
@@ -168,7 +168,7 @@ func TestRunApply(t *testing.T) {
 					return nil
 				}
 				// Fail commit for repo3
-				gitCommitChanges = func(repoPath, _ string) error {
+				gitCommitChanges = func(repoPath, _ string, _ bool) error {
 					if repoPath == "repo3" {
 						return fmt.Errorf("commit error")
 					}
@@ -211,6 +211,7 @@ func TestRunApply(t *testing.T) {
 			baseBranch = tt.baseBranch
 			pullLatest = tt.pullLatest
 			push = tt.push
+			noVerify = false
 
 			// Capture stdout
 			oldStdout := os.Stdout
@@ -231,6 +232,7 @@ func TestRunApply(t *testing.T) {
 			baseBranch = ""
 			pullLatest = false
 			push = false
+			noVerify = false
 
 			// Verify results
 			if err != nil {
