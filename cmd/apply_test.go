@@ -241,16 +241,52 @@ func TestRunApply(t *testing.T) {
 
 			output := string(out)
 
-			// Check success header
-			expectedSuccessHeader := fmt.Sprintf("Successfully processed (%d):", tt.wantSuccess)
-			if tt.wantSuccess > 0 && !strings.Contains(output, expectedSuccessHeader) {
-				t.Errorf("Missing success header: %q\n\nGot:\n%s", expectedSuccessHeader, output)
+			okCount := 0
+			failCount := 0
+			var logPath string
+			for _, line := range strings.Split(output, "\n") {
+				switch {
+				case strings.HasPrefix(line, "ok "):
+					okCount++
+				case strings.HasPrefix(line, "fail "):
+					failCount++
+				case strings.HasPrefix(line, "Error details: "):
+					logPath = strings.TrimSpace(strings.TrimPrefix(line, "Error details: "))
+				}
 			}
 
-			// Check failure header
-			expectedErrorHeader := fmt.Sprintf("Failed (%d):", tt.wantErrors)
-			if tt.wantErrors > 0 && !strings.Contains(output, expectedErrorHeader) {
-				t.Errorf("Missing error header: %q\n\nGot:\n%s", expectedErrorHeader, output)
+			if okCount != tt.wantSuccess {
+				t.Errorf("Expected %d ok lines, got %d\n\nOutput:\n%s", tt.wantSuccess, okCount, output)
+			}
+			if failCount != tt.wantErrors {
+				t.Errorf("Expected %d fail lines, got %d\n\nOutput:\n%s", tt.wantErrors, failCount, output)
+			}
+			if okCount+failCount != len(tt.repos) {
+				t.Errorf("Expected %d repo result lines, got %d\n\nOutput:\n%s", len(tt.repos), okCount+failCount, output)
+			}
+
+			for _, repo := range tt.repos {
+				okLine := fmt.Sprintf("%-4s %s", "ok", repo)
+				failLine := fmt.Sprintf("%-4s %s", "fail", repo)
+				if !strings.Contains(output, okLine) && !strings.Contains(output, failLine) {
+					t.Errorf("Missing result line for repo %q\n\nOutput:\n%s", repo, output)
+				}
+			}
+
+			if tt.wantErrors > 0 {
+				if logPath == "" {
+					t.Errorf("Missing error log path\n\nOutput:\n%s", output)
+				} else if info, err := os.Stat(logPath); err != nil {
+					t.Errorf("Error log not found at %q: %v", logPath, err)
+				} else if info.IsDir() {
+					t.Errorf("Expected error log file, got directory: %q", logPath)
+				}
+			} else if logPath != "" {
+				t.Errorf("Unexpected error log path in success output: %q\n\nOutput:\n%s", logPath, output)
+			}
+
+			if logPath != "" {
+				_ = os.Remove(logPath)
 			}
 		})
 	}
