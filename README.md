@@ -69,6 +69,7 @@ Optional parameters:
 - `--base-branch` - Branch to check out and apply changes to (default: current branch)
 - `--pull` - Pull latest changes from remote before applying changes (default: false)
 - `--push` - Push changes to remote after applying them (default: false)
+- `--no-verify` - Skip git commit and push hooks (default: false)
 
 To see available commands:
 
