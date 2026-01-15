@@ -81,7 +81,7 @@ func TestRunApply(t *testing.T) {
 			baseBranch: "main",
 			mockSetup: func() {
 				resetMocks()
-				gitCheckoutExistingBranch = func(repoPath, branch string) error {
+				gitCheckoutExistingBranch = func(_, _ string) error {
 					return fmt.Errorf("base branch checkout failed")
 				}
 			},
@@ -95,7 +95,7 @@ func TestRunApply(t *testing.T) {
 			pullLatest: true,
 			mockSetup: func() {
 				resetMocks()
-				gitPullLatest = func(repoPath string) error {
+				gitPullLatest = func(_ string) error {
 					return fmt.Errorf("pull failed")
 				}
 			},
@@ -109,7 +109,7 @@ func TestRunApply(t *testing.T) {
 			push:      true,
 			mockSetup: func() {
 				resetMocks()
-				gitPushChanges = func(repoPath, branch string, _ bool) error {
+				gitPushChanges = func(_, _ string, _ bool) error {
 					return fmt.Errorf("push failed")
 				}
 			},
@@ -148,13 +148,29 @@ func TestRunApply(t *testing.T) {
 			wantErrors:  3,
 		},
 		{
+			name:      "some_success_some_fail_patch",
+			repos:     []string{"repo1", "repo2", "repo3"},
+			useScript: false,
+			mockSetup: func() {
+				resetMocks()
+				gitCommitChanges = func(repoPath, _ string, _ bool) error {
+					if repoPath == "repo2" {
+						return fmt.Errorf("commit error")
+					}
+					return nil
+				}
+			},
+			wantSuccess: 2,
+			wantErrors:  1,
+		},
+		{
 			name:      "mixed_results_script",
 			repos:     []string{"repo1", "repo2", "repo3"},
 			useScript: true,
 			mockSetup: func() {
 				resetMocks()
 				// Fail checkout for repo1
-				gitCheckoutBranch = func(repoPath, branch string) error {
+				gitCheckoutBranch = func(repoPath, _ string) error {
 					if repoPath == "repo1" {
 						return fmt.Errorf("checkout error")
 					}
