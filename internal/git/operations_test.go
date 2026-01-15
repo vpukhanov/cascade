@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -80,6 +81,48 @@ func TestCommitChanges(t *testing.T) {
 	log := runGit(t, repoPath, "log", "-1", "--pretty=%s")
 	if log != commitMessage {
 		t.Errorf("Expected commit message %q, got %q", commitMessage, log)
+	}
+}
+
+func TestCommitChangesNoVerifySkipsHook(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("git hook shell scripts are not supported on Windows in this test")
+	}
+
+	repoPath := createTestRepo(t)
+	commitMessage := "Skip hooks\n"
+
+	// Create a pre-commit hook that would fail if executed.
+	hookPath := filepath.Join(repoPath, ".git", "hooks", "pre-commit")
+	markerPath := filepath.Join(repoPath, "hook_ran")
+	hookContents := "#!/bin/sh\n" +
+		"echo ran > \"" + markerPath + "\"\n" +
+		"exit 1\n"
+	if err := os.WriteFile(hookPath, []byte(hookContents), 0755); err != nil {
+		t.Fatalf("failed to write pre-commit hook: %v", err)
+	}
+
+	// Create test file.
+	err := os.WriteFile(filepath.Join(repoPath, "test.txt"), []byte("content"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = CommitChanges(repoPath, commitMessage, true)
+	if err != nil {
+		t.Fatalf("CommitChanges with --no-verify failed: %v", err)
+	}
+
+	// Verify commit exists.
+	log := runGit(t, repoPath, "log", "-1", "--pretty=%s")
+	if log != commitMessage {
+		t.Errorf("Expected commit message %q, got %q", commitMessage, log)
+	}
+
+	if _, err := os.Stat(markerPath); err == nil {
+		t.Errorf("Expected pre-commit hook to be skipped, but it ran")
+	} else if !os.IsNotExist(err) {
+		t.Fatalf("failed to check hook marker: %v", err)
 	}
 }
 
