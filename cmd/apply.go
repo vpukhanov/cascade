@@ -13,15 +13,16 @@ import (
 )
 
 var (
-	patchFile  string
-	scriptFile string
-	branch     string
-	message    string
-	baseBranch string
-	pullLatest bool
-	push       bool
-	noVerify   bool
-	stash      bool
+	patchFile     string
+	scriptFile    string
+	branch        string
+	message       string
+	baseBranch    string
+	pullLatest    bool
+	push          bool
+	noVerify      bool
+	stash         bool
+	openRemoteURL bool
 
 	gitCheckoutBranch         = git.CheckoutBranch
 	gitCheckoutExistingBranch = git.CheckoutExistingBranch
@@ -55,6 +56,9 @@ var applyCmd = &cobra.Command{
 		}
 		if message == "" {
 			return fmt.Errorf("--message is required")
+		}
+		if openRemoteURL && !push {
+			return fmt.Errorf("--open-remote-url requires --push")
 		}
 
 		if patchFile != "" {
@@ -103,6 +107,7 @@ func init() {
 	applyCmd.Flags().BoolVar(&push, "push", false, "Push new branch to origin after applying the changes")
 	applyCmd.Flags().BoolVar(&noVerify, "no-verify", false, "Skip git commit and push hooks")
 	applyCmd.Flags().BoolVar(&stash, "stash", false, "Stash tracked and untracked changes before applying changes")
+	applyCmd.Flags().BoolVar(&openRemoteURL, "open-remote-url", false, "Open the last URL from git push output in the default browser, often links to the PR/MR creation page with default Github and Gitlab server configurations")
 }
 
 // ResetFlags resets all global flag variables to their zero values
@@ -116,6 +121,7 @@ func ResetFlags() {
 	push = false
 	noVerify = false
 	stash = false
+	openRemoteURL = false
 }
 
 func runApply(cmd *cobra.Command, args []string) error {
@@ -141,6 +147,7 @@ func runApply(cmd *cobra.Command, args []string) error {
 
 	for _, repoPath := range args {
 		var repoErr error
+		var pushOutput string
 
 		if stash {
 			if err := gitStashChanges(repoPath); err != nil {
@@ -188,9 +195,18 @@ func runApply(cmd *cobra.Command, args []string) error {
 		}
 
 		if repoErr == nil && push {
-			if err := gitPushChanges(repoPath, branch, noVerify); err != nil {
+			output, err := gitPushChanges(repoPath, branch, noVerify)
+			if err != nil {
 				repoErr = fmt.Errorf("push failed: %w", err)
+			} else {
+				pushOutput = output
 			}
+		}
+
+		if repoErr == nil && openRemoteURL {
+			// Ignore the error, because opening a browser can fail depending
+			// on the execution environment
+			_ = git.OpenLastRemoteURL(pushOutput)
 		}
 
 		if repoErr != nil {
