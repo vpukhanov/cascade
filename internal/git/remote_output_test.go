@@ -14,14 +14,21 @@ func TestLastRemoteURL(t *testing.T) {
 			want:   "",
 		},
 		{
-			name:   "single_url",
+			name:   "single_remote_url",
 			output: "remote: Create pull request: https://example.com/org/repo/compare/branch?expand=1",
 			want:   "https://example.com/org/repo/compare/branch?expand=1",
 		},
 		{
-			name: "multiple_urls",
+			name: "non_remote_ignored",
+			output: "Create PR https://example.com/ignored\n" +
+				"hint: another https://example.com/also-ignored",
+			want: "",
+		},
+		{
+			name: "multiple_remote_urls",
 			output: "remote: View changes https://example.com/first\n" +
-				"remote: Create pull request https://example.com/second",
+				"remote: Create pull request https://example.com/second\n" +
+				"hint: https://example.com/ignored",
 			want: "https://example.com/second",
 		},
 	}

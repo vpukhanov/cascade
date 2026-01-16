@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"regexp"
 	"runtime"
+	"strings"
 )
 
 var remoteURLPattern = regexp.MustCompile(`https?://\S+`)
@@ -32,9 +33,17 @@ func OpenLastRemoteURL(output string) error {
 }
 
 func lastRemoteURL(output string) string {
-	matches := remoteURLPattern.FindAllString(output, -1)
-	if len(matches) == 0 {
-		return ""
+	var lastMatch string
+	for line := range strings.SplitSeq(output, "\n") {
+		trimmed := strings.TrimLeft(line, " \t")
+		if !strings.HasPrefix(trimmed, "remote:") {
+			continue
+		}
+		matches := remoteURLPattern.FindAllString(trimmed, -1)
+		if len(matches) == 0 {
+			continue
+		}
+		lastMatch = matches[len(matches)-1]
 	}
-	return matches[len(matches)-1]
+	return lastMatch
 }
