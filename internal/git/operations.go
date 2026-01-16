@@ -98,7 +98,7 @@ func PullLatest(repoPath string) error {
 	return nil
 }
 
-func PushChanges(repoPath string, branch string, noVerify bool) error {
+func PushChanges(repoPath string, branch string, noVerify bool) (string, error) {
 	pushArgs := []string{"push"}
 	if noVerify {
 		pushArgs = append(pushArgs, "--no-verify")
@@ -106,8 +106,9 @@ func PushChanges(repoPath string, branch string, noVerify bool) error {
 	pushArgs = append(pushArgs, "-u", "origin", branch)
 	cmd := exec.Command("git", pushArgs...)
 	cmd.Dir = repoPath
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("error pushing changes: %w\n%s", err, string(output))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return string(output), fmt.Errorf("error pushing changes: %w\n%s", err, string(output))
 	}
-	return nil
+	return string(output), nil
 }

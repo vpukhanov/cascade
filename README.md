@@ -71,6 +71,7 @@ Optional parameters:
 - `--push` - Push changes to remote after applying them (default: false)
 - `--no-verify` - Skip git commit and push hooks (default: false)
 - `--stash` - Stash tracked and untracked changes before applying changes (default: false)
+- `--open-remote-url` - Open the last URL from git push output in the default browser, often links to the PR/MR creation page with default Github and Gitlab server configurations (requires `--push`, default: false)
 
 To see available commands:
 

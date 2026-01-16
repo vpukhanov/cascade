@@ -16,7 +16,7 @@ func resetMocks() {
 	gitCommitChanges = func(repoPath, message string, noVerify bool) error { return nil }
 	gitExecuteScript = func(repoPath, scriptPath string) error { return nil }
 	gitPullLatest = func(repoPath string) error { return nil }
-	gitPushChanges = func(repoPath, branch string, noVerify bool) error { return nil }
+	gitPushChanges = func(repoPath, branch string, noVerify bool) (string, error) { return "", nil }
 	gitStashChanges = func(repoPath string) error { return nil }
 }
 
@@ -134,8 +134,8 @@ func TestRunApply(t *testing.T) {
 			push:      true,
 			mockSetup: func() {
 				resetMocks()
-				gitPushChanges = func(_, _ string, _ bool) error {
-					return fmt.Errorf("push failed")
+				gitPushChanges = func(_, _ string, _ bool) (string, error) {
+					return "", fmt.Errorf("push failed")
 				}
 			},
 			wantSuccess: 0,
@@ -276,6 +276,7 @@ func TestRunApply(t *testing.T) {
 			push = false
 			noVerify = false
 			stash = false
+			openRemoteURL = false
 
 			// Verify results
 			if err != nil {
