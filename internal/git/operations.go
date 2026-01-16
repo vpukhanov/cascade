@@ -1,6 +1,7 @@
 package git
 
 import (
+	"bytes"
 	"fmt"
 	"os/exec"
 )
@@ -10,6 +11,25 @@ func CheckoutBranch(repoPath string, branch string) error {
 	cmd.Dir = repoPath
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("error checking out branch: %w\n%s", err, string(output))
+	}
+	return nil
+}
+
+func StashChanges(repoPath string) error {
+	statusCmd := exec.Command("git", "status", "--porcelain")
+	statusCmd.Dir = repoPath
+	statusOutput, err := statusCmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("git status failed: %w\n%s", err, string(statusOutput))
+	}
+	if len(bytes.TrimSpace(statusOutput)) == 0 {
+		return nil
+	}
+
+	cmd := exec.Command("git", "stash", "push", "-u")
+	cmd.Dir = repoPath
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("git stash failed: %w\n%s", err, string(output))
 	}
 	return nil
 }

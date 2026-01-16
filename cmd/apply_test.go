@@ -17,6 +17,7 @@ func resetMocks() {
 	gitExecuteScript = func(repoPath, scriptPath string) error { return nil }
 	gitPullLatest = func(repoPath string) error { return nil }
 	gitPushChanges = func(repoPath, branch string, noVerify bool) error { return nil }
+	gitStashChanges = func(repoPath string) error { return nil }
 }
 
 func TestRunApply(t *testing.T) {
@@ -27,6 +28,7 @@ func TestRunApply(t *testing.T) {
 		baseBranch  string
 		pullLatest  bool
 		push        bool
+		stash       bool
 		mockSetup   func()
 		wantSuccess int
 		wantErrors  int
@@ -75,6 +77,15 @@ func TestRunApply(t *testing.T) {
 			wantErrors:  0,
 		},
 		{
+			name:        "success_with_stash",
+			repos:       []string{"repo1", "repo2"},
+			useScript:   false,
+			stash:       true,
+			mockSetup:   func() { resetMocks() },
+			wantSuccess: 2,
+			wantErrors:  0,
+		},
+		{
 			name:       "fail_base_branch_checkout",
 			repos:      []string{"repo1", "repo2"},
 			useScript:  false,
@@ -83,6 +94,20 @@ func TestRunApply(t *testing.T) {
 				resetMocks()
 				gitCheckoutExistingBranch = func(_, _ string) error {
 					return fmt.Errorf("base branch checkout failed")
+				}
+			},
+			wantSuccess: 0,
+			wantErrors:  2,
+		},
+		{
+			name:      "fail_stash",
+			repos:     []string{"repo1", "repo2"},
+			useScript: false,
+			stash:     true,
+			mockSetup: func() {
+				resetMocks()
+				gitStashChanges = func(_ string) error {
+					return fmt.Errorf("stash failed")
 				}
 			},
 			wantSuccess: 0,
@@ -228,6 +253,7 @@ func TestRunApply(t *testing.T) {
 			pullLatest = tt.pullLatest
 			push = tt.push
 			noVerify = false
+			stash = tt.stash
 
 			// Capture stdout
 			oldStdout := os.Stdout
@@ -249,6 +275,7 @@ func TestRunApply(t *testing.T) {
 			pullLatest = false
 			push = false
 			noVerify = false
+			stash = false
 
 			// Verify results
 			if err != nil {

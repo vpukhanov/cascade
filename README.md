@@ -70,6 +70,7 @@ Optional parameters:
 - `--pull` - Pull latest changes from remote before applying changes (default: false)
 - `--push` - Push changes to remote after applying them (default: false)
 - `--no-verify` - Skip git commit and push hooks (default: false)
+- `--stash` - Stash tracked and untracked changes before applying changes (default: false)
 
 To see available commands:
 

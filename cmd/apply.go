@@ -21,6 +21,7 @@ var (
 	pullLatest bool
 	push       bool
 	noVerify   bool
+	stash      bool
 
 	gitCheckoutBranch         = git.CheckoutBranch
 	gitCheckoutExistingBranch = git.CheckoutExistingBranch
@@ -29,6 +30,7 @@ var (
 	gitExecuteScript          = git.ExecuteScript
 	gitPullLatest             = git.PullLatest
 	gitPushChanges            = git.PushChanges
+	gitStashChanges           = git.StashChanges
 )
 
 var applyCmd = &cobra.Command{
@@ -100,6 +102,7 @@ func init() {
 	applyCmd.Flags().BoolVar(&pullLatest, "pull", false, "Pull latest changes from remote before applying changes")
 	applyCmd.Flags().BoolVar(&push, "push", false, "Push new branch to origin after applying the changes")
 	applyCmd.Flags().BoolVar(&noVerify, "no-verify", false, "Skip git commit and push hooks")
+	applyCmd.Flags().BoolVar(&stash, "stash", false, "Stash tracked and untracked changes before applying changes")
 }
 
 // ResetFlags resets all global flag variables to their zero values
@@ -112,6 +115,7 @@ func ResetFlags() {
 	pullLatest = false
 	push = false
 	noVerify = false
+	stash = false
 }
 
 func runApply(cmd *cobra.Command, args []string) error {
@@ -138,8 +142,14 @@ func runApply(cmd *cobra.Command, args []string) error {
 	for _, repoPath := range args {
 		var repoErr error
 
-		// If base branch is specified, check it out first
-		if baseBranch != "" {
+		if stash {
+			if err := gitStashChanges(repoPath); err != nil {
+				repoErr = fmt.Errorf("stash failed: %w", err)
+			}
+		}
+
+		// If base branch is specified, check it out
+		if repoErr == nil && baseBranch != "" {
 			if err := gitCheckoutExistingBranch(repoPath, baseBranch); err != nil {
 				repoErr = fmt.Errorf("base branch checkout failed: %w", err)
 			}

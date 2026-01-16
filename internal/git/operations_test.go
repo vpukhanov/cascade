@@ -126,6 +126,26 @@ func TestCommitChangesNoVerifySkipsHook(t *testing.T) {
 	}
 }
 
+func TestStashChanges(t *testing.T) {
+	repoPath := createTestRepo(t)
+
+	if err := os.WriteFile(filepath.Join(repoPath, "untracked.txt"), []byte("temp"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repoPath, "README.md"), []byte("# Test Repo\nupdated\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := StashChanges(repoPath); err != nil {
+		t.Fatalf("StashChanges failed: %v", err)
+	}
+
+	status := runGit(t, repoPath, "status", "--porcelain")
+	if strings.TrimSpace(status) != "" {
+		t.Errorf("expected clean working tree after stash, got %q", status)
+	}
+}
+
 func TestIsGitRepository(t *testing.T) {
 	t.Run("valid repository", func(t *testing.T) {
 		repoPath := createTestRepo(t)
