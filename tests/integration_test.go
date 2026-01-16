@@ -339,6 +339,111 @@ index 0000000..9daeafb
 		}
 	})
 
+	t.Run("open remote URL after push", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("Git hook shell scripts are not supported on Windows in this test")
+		}
+
+		resetFlags()
+
+		openCmd := "xdg-open"
+		if runtime.GOOS == "darwin" {
+			openCmd = "open"
+		}
+
+		// Create a bare remote repository with a hook that emits a URL.
+		remoteRepo := filepath.Join(testDir, "remote-open-url")
+		if err := os.MkdirAll(remoteRepo, 0755); err != nil {
+			t.Fatal(err)
+		}
+		runGitCmd(t, remoteRepo, "init", "--bare", "-b", "main")
+
+		hookPath := filepath.Join(remoteRepo, "hooks", "post-receive")
+		hookContents := "#!/bin/sh\n" +
+			"echo \"Create PR https://example.com/pull/1\"\n"
+		if err := os.WriteFile(hookPath, []byte(hookContents), 0755); err != nil {
+			t.Fatalf("failed to write post-receive hook: %v", err)
+		}
+
+		// Clone the remote repository.
+		clonedRepo := filepath.Join(testDir, "cloned-open-url")
+		runGitCmd(t, testDir, "clone", remoteRepo, clonedRepo)
+
+		// Set up git config in cloned repo.
+		runGitCmd(t, clonedRepo, "config", "user.email", "test@example.com")
+		runGitCmd(t, clonedRepo, "config", "user.name", "Test User")
+		runGitCmd(t, clonedRepo, "config", "commit.gpgsign", "false")
+
+		// Create initial commit in cloned repo.
+		readmeFile := filepath.Join(clonedRepo, "README.md")
+		if err := os.WriteFile(readmeFile, []byte("# Test Repository"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		runGitCmd(t, clonedRepo, "add", "README.md")
+		runGitCmd(t, clonedRepo, "commit", "-m", "Initial commit")
+		runGitCmd(t, clonedRepo, "push", "origin", "main")
+
+		// Create a patch file.
+		patchContent := `diff --git a/pushed.txt b/pushed.txt
+new file mode 100644
+index 0000000..9daeafb
+--- /dev/null
++++ b/pushed.txt
+@@ -0,0 +1 @@
++pushed content
+`
+		patchFile := filepath.Join(testDir, "open-url.patch")
+		if err := os.WriteFile(patchFile, []byte(patchContent), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		// Create a fake opener to verify it was called.
+		openDir := filepath.Join(testDir, "open-bin")
+		if err := os.MkdirAll(openDir, 0755); err != nil {
+			t.Fatal(err)
+		}
+		markerPath := filepath.Join(testDir, "open-called")
+		openPath := filepath.Join(openDir, openCmd)
+		openContents := "#!/bin/sh\n" +
+			"echo \"$1\" > \"" + markerPath + "\"\n"
+		if err := os.WriteFile(openPath, []byte(openContents), 0755); err != nil {
+			t.Fatal(err)
+		}
+
+		oldPath := os.Getenv("PATH")
+		if err := os.Setenv("PATH", openDir+string(os.PathListSeparator)+oldPath); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			_ = os.Setenv("PATH", oldPath)
+		})
+
+		// Set up command line arguments.
+		os.Args = []string{
+			"cascade",
+			"apply",
+			"--patch", patchFile,
+			"--branch", "feature/open-url-test",
+			"--message", "Add pushed.txt",
+			"--push",
+			"--open-remote-url",
+			clonedRepo,
+		}
+
+		// Run the command.
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("Execute failed: %v", err)
+		}
+
+		content, err := os.ReadFile(markerPath)
+		if err != nil {
+			t.Fatalf("expected browser opener to be called: %v", err)
+		}
+		if strings.TrimSpace(string(content)) != "https://example.com/pull/1" {
+			t.Errorf("expected opener to receive URL, got %q", strings.TrimSpace(string(content)))
+		}
+	})
+
 	t.Run("push with no-verify skips pre-push hook", func(t *testing.T) {
 		if runtime.GOOS == "windows" {
 			t.Skip("Git hook shell scripts are not supported on Windows in this test")
