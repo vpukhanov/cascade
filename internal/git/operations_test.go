@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -85,10 +84,6 @@ func TestCommitChanges(t *testing.T) {
 }
 
 func TestCommitChangesNoVerifySkipsHook(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("git hook shell scripts are not supported on Windows in this test")
-	}
-
 	repoPath := createTestRepo(t)
 	commitMessage := "Skip hooks\n"
 
