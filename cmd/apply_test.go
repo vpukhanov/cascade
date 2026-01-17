@@ -14,6 +14,7 @@ func resetMocks() {
 	gitCheckoutExistingBranch = func(repoPath, branch string) error { return nil }
 	gitApplyPatch = func(repoPath, patchPath string) error { return nil }
 	gitCommitChanges = func(repoPath, message string, noVerify bool) error { return nil }
+	gitExecuteCommand = func(repoPath, command string) error { return nil }
 	gitExecuteScript = func(repoPath, scriptPath string) error { return nil }
 	gitPullLatest = func(repoPath string) error { return nil }
 	gitPushChanges = func(repoPath, branch string, noVerify bool) (string, error) { return "", nil }
@@ -25,6 +26,7 @@ func TestRunApply(t *testing.T) {
 		name        string
 		repos       []string
 		useScript   bool
+		useCommand  bool
 		baseBranch  string
 		pullLatest  bool
 		push        bool
@@ -45,6 +47,14 @@ func TestRunApply(t *testing.T) {
 			name:        "all_success_script",
 			repos:       []string{"repo1", "repo2"},
 			useScript:   true,
+			mockSetup:   func() { resetMocks() },
+			wantSuccess: 2,
+			wantErrors:  0,
+		},
+		{
+			name:        "all_success_command",
+			repos:       []string{"repo1", "repo2"},
+			useCommand:  true,
 			mockSetup:   func() { resetMocks() },
 			wantSuccess: 2,
 			wantErrors:  0,
@@ -220,6 +230,19 @@ func TestRunApply(t *testing.T) {
 			wantErrors:  3,
 		},
 		{
+			name:       "all_fail_command",
+			repos:      []string{"repo1"},
+			useCommand: true,
+			mockSetup: func() {
+				resetMocks()
+				gitExecuteCommand = func(_, _ string) error {
+					return fmt.Errorf("command failed")
+				}
+			},
+			wantSuccess: 0,
+			wantErrors:  1,
+		},
+		{
 			name:      "all_fail_script",
 			repos:     []string{"repo1"},
 			useScript: true,
@@ -239,13 +262,19 @@ func TestRunApply(t *testing.T) {
 			// Simplified setup without temp files
 			tt.mockSetup()
 
-			// Set script or patch file
-			if tt.useScript {
+			// Set command, script, or patch file
+			if tt.useCommand {
+				command = "echo test"
+				scriptFile = ""
+				patchFile = ""
+			} else if tt.useScript {
 				scriptFile = "test.sh"
 				patchFile = ""
+				command = ""
 			} else {
 				scriptFile = ""
 				patchFile = "test.patch"
+				command = ""
 			}
 
 			// Set optional flags
@@ -271,6 +300,7 @@ func TestRunApply(t *testing.T) {
 			// Reset global variables
 			scriptFile = ""
 			patchFile = ""
+			command = ""
 			baseBranch = ""
 			pullLatest = false
 			push = false
