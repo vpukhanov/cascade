@@ -18,12 +18,9 @@ func OpenLastRemoteURL(output string) error {
 	}
 
 	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "darwin":
+	if runtime.GOOS == "darwin" {
 		cmd = exec.Command("open", url)
-	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
-	default:
+	} else {
 		cmd = exec.Command("xdg-open", url)
 	}
 	if output, err := cmd.CombinedOutput(); err != nil {

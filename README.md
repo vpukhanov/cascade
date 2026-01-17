@@ -25,7 +25,6 @@ Alternatively, you can download the binary from the [Releases page](https://gith
 2. Extract the archive:
    - On macOS: Double-click the .zip file or use `unzip cascade_*_Darwin_*.zip`
    - On Linux: `tar -xzf cascade_*_Linux_*.tar.gz`
-   - On Windows: Extract the .zip file using File Explorer or a tool like 7-Zip
 3. Move the `cascade` binary to a directory in your system's `PATH`.
 
 ## Usage
