@@ -14,6 +14,7 @@ import (
 var (
 	patchFile     string
 	scriptFile    string
+	command       string
 	branch        string
 	message       string
 	baseBranch    string
@@ -27,6 +28,7 @@ var (
 	gitCheckoutExistingBranch = git.CheckoutExistingBranch
 	gitApplyPatch             = git.ApplyPatch
 	gitCommitChanges          = git.CommitChanges
+	gitExecuteCommand         = git.ExecuteCommand
 	gitExecuteScript          = git.ExecuteScript
 	gitPullLatest             = git.PullLatest
 	gitPushChanges            = git.PushChanges
@@ -36,16 +38,26 @@ var (
 var applyCmd = &cobra.Command{
 	Use:     "apply [repositories...]",
 	Short:   "Apply changes across multiple repositories",
-	Long:    "Apply changes across multiple git repositories using either a patch file or a script.",
+	Long:    "Apply changes across multiple git repositories using either a patch file, a script, or a command.",
 	Example: `cascade apply --patch ./changes.patch --branch update-logging --message "Update logging" ./repo1 ./repo2`,
 	Args:    cobra.MinimumNArgs(1),
 	RunE:    runApply,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if patchFile == "" && scriptFile == "" {
-			return fmt.Errorf("either --patch or --script must be specified")
+		modeCount := 0
+		if patchFile != "" {
+			modeCount++
 		}
-		if patchFile != "" && scriptFile != "" {
-			return fmt.Errorf("--patch and --script cannot be used together")
+		if scriptFile != "" {
+			modeCount++
+		}
+		if command != "" {
+			modeCount++
+		}
+		if modeCount == 0 {
+			return fmt.Errorf("one of --patch, --script, or --command must be specified")
+		}
+		if modeCount > 1 {
+			return fmt.Errorf("--patch, --script, and --command cannot be used together")
 		}
 		if branch == "" {
 			return fmt.Errorf("--branch is required")
@@ -94,6 +106,7 @@ func init() {
 	// Required flags
 	applyCmd.Flags().StringVar(&patchFile, "patch", "", "Path to patch file")
 	applyCmd.Flags().StringVar(&scriptFile, "script", "", "Path to executable script")
+	applyCmd.Flags().StringVar(&command, "command", "", "Command to execute in each repository")
 	applyCmd.Flags().StringVar(&branch, "branch", "", "Name for the new branch that will be created")
 	applyCmd.Flags().StringVar(&message, "message", "", "Commit message used for the changes")
 
@@ -110,6 +123,7 @@ func init() {
 func ResetFlags() {
 	patchFile = ""
 	scriptFile = ""
+	command = ""
 	branch = ""
 	message = ""
 	baseBranch = ""
@@ -126,7 +140,7 @@ func runApply(cmd *cobra.Command, args []string) error {
 
 	if scriptFile != "" {
 		absPath, err = filepath.Abs(scriptFile)
-	} else {
+	} else if patchFile != "" {
 		absPath, err = filepath.Abs(patchFile)
 	}
 	if err != nil {
@@ -173,11 +187,16 @@ func runApply(cmd *cobra.Command, args []string) error {
 		}
 
 		if repoErr == nil {
-			if scriptFile != "" {
+			switch {
+			case command != "":
+				if err := gitExecuteCommand(repoPath, command); err != nil {
+					repoErr = fmt.Errorf("command execution failed: %w", err)
+				}
+			case scriptFile != "":
 				if err := gitExecuteScript(repoPath, absPath); err != nil {
 					repoErr = fmt.Errorf("script execution failed: %w", err)
 				}
-			} else {
+			default:
 				if err := gitApplyPatch(repoPath, absPath); err != nil {
 					repoErr = fmt.Errorf("patch application failed: %w", err)
 				}
@@ -220,7 +239,6 @@ func runApply(cmd *cobra.Command, args []string) error {
 	}
 
 	// Print results
-	fmt.Println()
 	for _, result := range results {
 		status := "ok"
 		if result.err != nil {

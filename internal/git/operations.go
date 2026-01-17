@@ -80,6 +80,15 @@ func ExecuteScript(repoPath string, scriptPath string) error {
 	return nil
 }
 
+func ExecuteCommand(repoPath string, command string) error {
+	cmd := exec.Command("sh", "-c", command)
+	cmd.Dir = repoPath
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("command execution failed: %w\n%s", err, string(output))
+	}
+	return nil
+}
+
 func CheckoutExistingBranch(repoPath string, branch string) error {
 	cmd := exec.Command("git", "checkout", branch)
 	cmd.Dir = repoPath

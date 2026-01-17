@@ -1,6 +1,6 @@
 # Cascade
 
-Cascade is a CLI tool designed to apply changes across multiple git repositories efficiently. It automates the process of fetching the latest changes, creating branches, applying patches or executing scripts, and generating pull requests.
+Cascade is a CLI tool designed to apply changes across multiple git repositories efficiently. It automates the process of fetching the latest changes, creating branches, applying patches, executing scripts, or running commands, and generating pull requests.
 
 > [!WARNING]
 > Cascade is a work in progress; some features may not function as intended. To prevent data loss, only run the program on repositories without unpushed important changes.
@@ -33,7 +33,7 @@ To apply changes across repositories:
 
 ```bash
 cascade apply \
-  --patch ./changes.patch \    # Path to patch file (or --script)
+  --patch ./changes.patch \    # Path to patch file (or --script/--command)
   --branch update-logging \    # New branch name
   --message "Update logging" \ # Commit message
   ./repo1 ./repo2              # Repository paths
@@ -43,6 +43,13 @@ cascade apply \
   --script ./update.sh \
   --branch refactor-components \
   --message "Refactor components" \
+  ./repo1 ./repo2
+
+# Alternative using a command
+cascade apply \
+  --command "gofmt -w ." \
+  --branch run-tests \
+  --message "Format files" \
   ./repo1 ./repo2
 
 # Apply changes to a specific base branch and update it first
@@ -59,7 +66,7 @@ cascade apply \
 Required parameters:
 
 - Repository paths - One or more paths to git repositories to modify (as positional arguments)
-- `--patch` or `--script` - Path to patch file or executable script
+- `--patch`, `--script`, or `--command` - Path to patch file, executable script, or command to run
 - `--branch` - Name for the new branch that will be created
 - `--message` - Commit message used for the changes
 

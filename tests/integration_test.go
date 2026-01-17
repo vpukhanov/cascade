@@ -132,6 +132,49 @@ echo "modified content" > modified.txt
 		}
 	})
 
+	t.Run("apply command to multiple repositories", func(t *testing.T) {
+		resetFlags()
+		command := `printf "command content" > command.txt`
+
+		// Set up command line arguments
+		os.Args = []string{
+			"cascade",
+			"apply",
+			"--command", command,
+			"--branch", "feature/test-command",
+			"--message", "Add command.txt",
+			repo1Path,
+			repo2Path,
+		}
+
+		// Run the command
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("Execute failed: %v", err)
+		}
+
+		// Verify changes in both repositories
+		for _, repoPath := range []string{repo1Path, repo2Path} {
+			// Check if branch exists
+			if branch := getCurrentBranch(t, repoPath); branch != "feature/test-command" {
+				t.Errorf("Expected branch feature/test-command, got %s in %s", branch, repoPath)
+			}
+
+			// Check if file exists and has correct content
+			commandFile := filepath.Join(repoPath, "command.txt")
+			content, err := os.ReadFile(commandFile)
+			if err != nil {
+				t.Errorf("command.txt not found in %s", repoPath)
+			} else if string(content) != "command content" {
+				t.Errorf("Expected content 'command content', got '%s' in %s", string(content), repoPath)
+			}
+
+			// Check commit message
+			if msg := getLastCommitMessage(t, repoPath); msg != "Add command.txt" {
+				t.Errorf("Expected commit message 'Add command.txt', got '%s' in %s", msg, repoPath)
+			}
+		}
+	})
+
 	t.Run("apply changes to specific base branch", func(t *testing.T) {
 		resetFlags()
 
